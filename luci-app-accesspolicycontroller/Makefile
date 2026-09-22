@@ -9,8 +9,6 @@ LUCI_TITLE:=LuCI access policy controller
 LUCI_DEPENDS:=+luci-base +nftables +tc-full +ip-full +kmod-ifb +kmod-sched-core +kmod-sched-htb +kmod-sched-act-mirred +kmod-sched-flower
 LUCI_PKGARCH:=all
 
-include $(TOPDIR)/feeds/luci/luci.mk
-
 define Package/$(PKG_NAME)/conffiles
 /etc/config/accesspolicycontroller
 endef
@@ -38,4 +36,4 @@ define Package/$(PKG_NAME)/postinst
 }
 endef
 
-$(eval $(call BuildPackage,$(PKG_NAME)))
+include $(TOPDIR)/feeds/luci/luci.mk
