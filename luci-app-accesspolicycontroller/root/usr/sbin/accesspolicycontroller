@@ -136,20 +136,38 @@ add_tc_filters() {
 	local ipv6="$6"
 	local mac="$7"
 	local matched=0
+	if valid_mac "$mac"; then
+		tc filter add dev "$device" parent 1:0 protocol all prio "$priority" u32 match ether dst "$mac" flowid 1:"$class" || {
+			logger -t "$TABLE" "failed to add MAC download filter for $mac on $device"
+			return 1
+		}
+		tc filter add dev "$ifb_device" parent 2:0 protocol all prio "$priority" u32 match ether src "$mac" flowid 2:"$class" || {
+			logger -t "$TABLE" "failed to add MAC upload filter for $mac on $ifb_device"
+			return 1
+		}
+		return 0
+	fi
 	if valid_ipv4 "$ipv4"; then
 		matched=1
-		tc filter add dev "$device" parent 1:0 protocol ip prio "$priority" u32 match ip dst "$ipv4" flowid 1:"$class" || return 1
-		tc filter add dev "$ifb_device" parent 2:0 protocol ip prio "$priority" u32 match ip src "$ipv4" flowid 2:"$class" || return 1
+		tc filter add dev "$device" parent 1:0 protocol ip prio "$priority" u32 match ip dst "$ipv4" flowid 1:"$class" || {
+			logger -t "$TABLE" "failed to add IPv4 download filter for $ipv4 on $device"
+			return 1
+		}
+		tc filter add dev "$ifb_device" parent 2:0 protocol ip prio "$priority" u32 match ip src "$ipv4" flowid 2:"$class" || {
+			logger -t "$TABLE" "failed to add IPv4 upload filter for $ipv4 on $ifb_device"
+			return 1
+		}
 	fi
 	if valid_ipv6 "$ipv6"; then
 		matched=1
-		tc filter add dev "$device" parent 1:0 protocol ipv6 prio "$priority" u32 match ip6 dst "$ipv6" flowid 1:"$class" || return 1
-		tc filter add dev "$ifb_device" parent 2:0 protocol ipv6 prio "$priority" u32 match ip6 src "$ipv6" flowid 2:"$class" || return 1
-	fi
-	if valid_mac "$mac"; then
-		matched=1
-		tc filter add dev "$device" parent 1:0 protocol all prio "$priority" u32 match ether dst "$mac" flowid 1:"$class" || return 1
-		tc filter add dev "$ifb_device" parent 2:0 protocol all prio "$priority" u32 match ether src "$mac" flowid 2:"$class" || return 1
+		tc filter add dev "$device" parent 1:0 protocol ipv6 prio "$priority" u32 match ip6 dst "$ipv6" flowid 1:"$class" || {
+			logger -t "$TABLE" "failed to add IPv6 download filter for $ipv6 on $device"
+			return 1
+		}
+		tc filter add dev "$ifb_device" parent 2:0 protocol ipv6 prio "$priority" u32 match ip6 src "$ipv6" flowid 2:"$class" || {
+			logger -t "$TABLE" "failed to add IPv6 upload filter for $ipv6 on $ifb_device"
+			return 1
+		}
 	fi
 	[ "$matched" = 1 ]
 }
@@ -178,6 +196,7 @@ shape_whitelist_entry() {
 cleanup_tc() {
 	local device="$1"
 	local ifb_device="$2"
+	local remove_ifb="$3"
 	if tc qdisc show dev "$device" 2>/dev/null | grep -q 'qdisc clsact '; then
 		tc filter del dev "$device" ingress prio "$INGRESS_FILTER_PRIORITY" u32 2>/dev/null || true
 	else
@@ -186,8 +205,11 @@ cleanup_tc() {
 	if tc qdisc show dev "$device" 2>/dev/null | grep -q 'qdisc htb 1: root'; then
 		tc qdisc del dev "$device" root 2>/dev/null || true
 	fi
-	ip link set dev "$ifb_device" down 2>/dev/null || true
-	ip link del dev "$ifb_device" 2>/dev/null || true
+	tc qdisc del dev "$ifb_device" root 2>/dev/null || true
+	if [ "$remove_ifb" = 1 ]; then
+		ip link set dev "$ifb_device" down 2>/dev/null || true
+		ip link del dev "$ifb_device" 2>/dev/null || true
+	fi
 }
 
 setup_tc() {
@@ -231,16 +253,17 @@ setup_tc() {
 }
 
 cleanup_saved_tc() {
+	local remove_ifb="$1"
 	local device ifb_device
 	[ -f "$STATE_FILE" ] || return 0
 	while read -r device ifb_device; do
-		[ -n "$device" ] && [ -n "$ifb_device" ] && cleanup_tc "$device" "$ifb_device"
+		[ -n "$device" ] && [ -n "$ifb_device" ] && cleanup_tc "$device" "$ifb_device" "$remove_ifb"
 	done < "$STATE_FILE"
 	rm -f "$STATE_FILE"
 }
 
 stop_all() {
-	cleanup_saved_tc
+	cleanup_saved_tc 1
 	nft delete table inet "$TABLE" 2>/dev/null || true
 }
 
