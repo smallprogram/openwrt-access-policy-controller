@@ -5,8 +5,8 @@
 'require tools.widgets as widgets';
 
 function validateName(sectionId, value) {
-	if (!/^[A-Za-z]+(?:-[A-Za-z]+)*$/.test(value))
-		return _('Use English letters and hyphens only.');
+	if (!/^[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*$/.test(value))
+		return _('Use English letters, numbers, and hyphens only.');
 
 	return true;
 }
@@ -107,7 +107,7 @@ return view.extend({
 		let option;
 
 		map = new form.Map('accesspolicycontroller', _('Access Policy Controller'),
-			_('Control LAN access with whitelist or blacklist rules. Whitelisted devices can optionally receive bandwidth limits.'));
+			_('Control access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits.'));
 		map.tabbed = true;
 
 		section = map.section(form.NamedSection, 'main', 'accesspolicycontroller', _('Overview'));
@@ -119,14 +119,17 @@ return view.extend({
 		option.default = '0';
 
 		option = section.option(form.ListValue, 'mode', _('Mode'));
+		option.description = _('Whitelist mode blocks devices not on the whitelist. Blacklist mode blocks only devices on the blacklist. Hybrid mode blocks blacklisted devices, applies rate limits to whitelisted devices, and allows all other devices without rate limits.');
 		option.value('whitelist', _('Whitelist mode'));
 		option.value('blacklist', _('Blacklist mode'));
+		option.value('hybrid', _('Hybrid mode'));
 		option.default = 'whitelist';
 		option.rmempty = false;
 
-		option = section.option(widgets.NetworkSelect, 'network', _('LAN network'));
+		option = section.option(widgets.NetworkSelect, 'network', _('Application interfaces'));
+		option.description = _('Select the internal interfaces where access policies apply. You can select more than one interface. Do not select WAN interfaces.');
 		option.default = 'lan';
-		option.multiple = false;
+		option.multiple = true;
 		option.nocreate = true;
 		option.rmempty = false;
 
@@ -134,7 +137,9 @@ return view.extend({
 		section.anonymous = true;
 		section.addremove = true;
 		section.nodescriptions = true;
+		section.filterrow = true;
 		addNameOption(section, validatePolicyName);
+		addCommentOption(section);
 		addRateOption(section, 'upload', _('Upload limit'));
 		addRateOption(section, 'download', _('Download limit'));
 
@@ -142,6 +147,7 @@ return view.extend({
 		section.anonymous = true;
 		section.addremove = true;
 		section.nodescriptions = true;
+		section.filterrow = true;
 		addCommentOption(section);
 		addNameOption(section);
 		addAddressOptions(section);
@@ -152,6 +158,7 @@ return view.extend({
 		section.anonymous = true;
 		section.addremove = true;
 		section.nodescriptions = true;
+		section.filterrow = true;
 		addCommentOption(section);
 		addNameOption(section);
 		addAddressOptions(section);

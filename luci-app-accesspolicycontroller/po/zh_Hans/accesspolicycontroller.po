@@ -10,8 +10,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-msgid "Use English letters and hyphens only."
-msgstr "仅可使用英文字母和连字符。"
+msgid "Use English letters, numbers, and hyphens only."
+msgstr "仅可使用英文字母、数字和连字符。"
 
 msgid "A rate limit policy with this name already exists."
 msgstr "已存在使用此名称的限速策略。"
@@ -46,8 +46,8 @@ msgstr "单位"
 msgid "Access Policy Controller"
 msgstr "访问策略控制器"
 
-msgid "Control LAN access with whitelist or blacklist rules. Whitelisted devices can optionally receive bandwidth limits."
-msgstr "通过白名单或黑名单规则控制局域网访问。可为白名单设备设置带宽限制。"
+msgid "Control access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits."
+msgstr "通过白名单、黑名单或混合规则控制所选内部接口的访问。可为白名单设备设置带宽限制。"
 
 msgid "Overview"
 msgstr "概览"
@@ -64,8 +64,11 @@ msgstr "白名单模式"
 msgid "Blacklist mode"
 msgstr "黑名单模式"
 
-msgid "LAN network"
-msgstr "局域网"
+msgid "Application interfaces"
+msgstr "应用接口"
+
+msgid "Select the internal interfaces where access policies apply. You can select more than one interface. Do not select WAN interfaces."
+msgstr "选择要应用访问策略的内部接口，可选择多个接口。请勿选择 WAN 接口。"
 
 msgid "Rate limit policies"
 msgstr "限速策略"
@@ -81,3 +84,9 @@ msgstr "白名单"
 
 msgid "Blacklist"
 msgstr "黑名单"
+
+msgid "Hybrid mode"
+msgstr "混合模式"
+
+msgid "Whitelist mode blocks devices not on the whitelist. Blacklist mode blocks only devices on the blacklist. Hybrid mode blocks blacklisted devices, applies rate limits to whitelisted devices, and allows all other devices without rate limits."
+msgstr "白名单模式会阻止不在白名单中的设备。黑名单模式只阻止黑名单中的设备。混合模式会阻止黑名单设备，对白名单设备应用限速策略，其他设备则放行且不限速。"

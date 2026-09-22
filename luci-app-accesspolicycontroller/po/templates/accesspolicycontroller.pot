@@ -2,7 +2,7 @@ msgid ""
 msgstr "Content-Type: text/plain; charset=UTF-8"
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:9
-msgid "Use English letters and hyphens only."
+msgid "Use English letters, numbers, and hyphens only."
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:24
@@ -51,7 +51,7 @@ msgid "Access Policy Controller"
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:110
-msgid "Control LAN access with whitelist or blacklist rules. Whitelisted devices can optionally receive bandwidth limits."
+msgid "Control access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits."
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:113
@@ -75,7 +75,11 @@ msgid "Blacklist mode"
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:127
-msgid "LAN network"
+msgid "Application interfaces"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:128
+msgid "Select the internal interfaces where access policies apply. You can select more than one interface. Do not select WAN interfaces."
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:133
@@ -96,4 +100,12 @@ msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:151
 msgid "Blacklist"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:122
+msgid "Hybrid mode"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:122
+msgid "Whitelist mode blocks devices not on the whitelist. Blacklist mode blocks only devices on the blacklist. Hybrid mode blocks blacklisted devices, applies rate limits to whitelisted devices, and allows all other devices without rate limits."
 msgstr ""

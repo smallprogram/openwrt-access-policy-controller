@@ -1,4 +1,4 @@
 config accesspolicycontroller 'main'
 	option enabled '0'
 	option mode 'whitelist'
-	option network 'lan'
+	list network 'lan'
