@@ -1,0 +1,20 @@
+#!/bin/sh /etc/rc.common
+
+START=95
+USE_PROCD=1
+
+start_service() {
+	/usr/sbin/accesspolicycontroller apply
+}
+
+stop_service() {
+	/usr/sbin/accesspolicycontroller stop
+}
+
+reload_service() {
+	/usr/sbin/accesspolicycontroller apply
+}
+
+service_triggers() {
+	procd_add_reload_trigger accesspolicycontroller firewall network
+}

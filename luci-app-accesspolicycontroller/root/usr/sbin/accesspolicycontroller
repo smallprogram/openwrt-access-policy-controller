@@ -1,0 +1,246 @@
+#!/bin/sh
+
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+TABLE=accesspolicycontroller
+IFB_DEVICE=apcifb0
+
+. /lib/functions.sh
+. /lib/functions/network.sh
+
+valid_address() {
+	local family="$1"
+	local expression="$2"
+	local address="$3"
+	printf 'table %s apc_address_check {\n\tchain forward {\n\t\t%s saddr %s accept\n\t}\n}\n' "$family" "$expression" "$address" | nft -c -f - >/dev/null 2>&1
+}
+
+valid_ipv4() {
+	echo "$1" | grep -Eq '^[0-9.]+$' && valid_address inet ip "$1"
+}
+
+valid_ipv6() {
+	echo "$1" | grep -Eq '^[0-9A-Fa-f:.]+$' && valid_address inet ip6 "$1"
+}
+
+valid_mac() {
+	echo "$1" | grep -Eqi '^([0-9a-f]{2}:){5}[0-9a-f]{2}$'
+}
+
+valid_rate() {
+	echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$' && [ "$(awk -v value="$1" 'BEGIN { print value > 0 }')" = 1 ]
+}
+
+rate_to_bits() {
+	local multiplier
+	case "$2" in
+		B/s) multiplier=8 ;;
+		KB/s) multiplier=8192 ;;
+		MB/s) multiplier=8388608 ;;
+		GB/s) multiplier=8589934592 ;;
+		*) return 1 ;;
+	esac
+	awk -v value="$1" -v multiplier="$multiplier" 'BEGIN { printf "%.0f", value * multiplier }'
+}
+
+resolve_device() {
+	local network="$1"
+	local device
+	network_get_device device "$network"
+	[ -n "$device" ] || device="$(uci -q get "network.$network.device")"
+	device="${device%% *}"
+	echo "$device"
+}
+
+emit_acl_rule() {
+	local section="$1"
+	local mode="$2"
+	local ipv4 ipv6 mac verdict prefix
+	config_get ipv4 "$section" ipv4
+	config_get ipv6 "$section" ipv6
+	config_get mac "$section" mac
+	[ "$mode" = whitelist ] && verdict=accept || verdict=drop
+	valid_mac "$mac" && prefix="ether saddr $mac "
+	if valid_ipv4 "$ipv4"; then
+		printf '\t\t%sip saddr %s counter %s\n' "$prefix" "$ipv4" "$verdict"
+	fi
+	if valid_ipv6 "$ipv6"; then
+		printf '\t\t%sip6 saddr %s counter %s\n' "$prefix" "$ipv6" "$verdict"
+	fi
+	if [ -z "$ipv4$ipv6" ] && valid_mac "$mac"; then
+		printf '\t\tether saddr %s counter %s\n' "$mac" "$verdict"
+	fi
+}
+
+build_nft_rules() {
+	local device="$1"
+	local mode="$2"
+	printf 'table inet %s {\n' "$TABLE"
+	printf '\tchain forward {\n'
+	printf '\t\ttype filter hook forward priority filter - 10; policy accept;\n'
+	printf '\t\tiifname "%s" jump lan_policy\n' "$device"
+	printf '\t}\n\tchain lan_policy {\n'
+	if [ "$mode" = whitelist ]; then
+		config_foreach emit_acl_rule whitelist "$mode"
+		printf '\t\tcounter drop\n'
+	else
+		config_foreach emit_acl_rule blacklist "$mode"
+	fi
+	printf '\t}\n}\n'
+}
+
+replace_nft_rules() {
+	printf 'destroy table inet %s\n' "$TABLE"
+	build_nft_rules "$@"
+}
+
+lookup_policy() {
+	local section="$1"
+	local wanted="$2"
+	local name
+	config_get name "$section" name
+	[ "$name" = "$wanted" ] || return 0
+	config_get POLICY_UPLOAD "$section" upload
+	config_get POLICY_UPLOAD_UNIT "$section" upload_unit
+	config_get POLICY_DOWNLOAD "$section" download
+	config_get POLICY_DOWNLOAD_UNIT "$section" download_unit
+}
+
+find_policy() {
+	POLICY_UPLOAD=
+	POLICY_UPLOAD_UNIT=
+	POLICY_DOWNLOAD=
+	POLICY_DOWNLOAD_UNIT=
+	config_foreach lookup_policy policy "$1"
+	valid_rate "$POLICY_UPLOAD" && valid_rate "$POLICY_DOWNLOAD"
+}
+
+add_tc_filters() {
+	local class="$1"
+	local priority="$2"
+	local ipv4="$3"
+	local ipv6="$4"
+	local mac="$5"
+	if valid_ipv4 "$ipv4"; then
+		if valid_mac "$mac"; then
+			tc filter replace dev "$DEVICE" parent 1: protocol ip prio "$priority" flower dst_ip "$ipv4" dst_mac "$mac" flowid 1:"$class" || return 1
+			tc filter replace dev "$IFB_DEVICE" parent 2: protocol ip prio "$priority" flower src_ip "$ipv4" src_mac "$mac" flowid 2:"$class" || return 1
+		else
+			tc filter replace dev "$DEVICE" parent 1: protocol ip prio "$priority" flower dst_ip "$ipv4" flowid 1:"$class" || return 1
+			tc filter replace dev "$IFB_DEVICE" parent 2: protocol ip prio "$priority" flower src_ip "$ipv4" flowid 2:"$class" || return 1
+		fi
+	fi
+	if valid_ipv6 "$ipv6"; then
+		if valid_mac "$mac"; then
+			tc filter replace dev "$DEVICE" parent 1: protocol ipv6 prio "$priority" flower dst_ip "$ipv6" dst_mac "$mac" flowid 1:"$class" || return 1
+			tc filter replace dev "$IFB_DEVICE" parent 2: protocol ipv6 prio "$priority" flower src_ip "$ipv6" src_mac "$mac" flowid 2:"$class" || return 1
+		else
+			tc filter replace dev "$DEVICE" parent 1: protocol ipv6 prio "$priority" flower dst_ip "$ipv6" flowid 1:"$class" || return 1
+			tc filter replace dev "$IFB_DEVICE" parent 2: protocol ipv6 prio "$priority" flower src_ip "$ipv6" flowid 2:"$class" || return 1
+		fi
+	fi
+	if [ -z "$ipv4$ipv6" ] && valid_mac "$mac"; then
+		tc filter replace dev "$DEVICE" parent 1: protocol all prio "$priority" flower dst_mac "$mac" flowid 1:"$class" || return 1
+		tc filter replace dev "$IFB_DEVICE" parent 2: protocol all prio "$priority" flower src_mac "$mac" flowid 2:"$class" || return 1
+	fi
+	return 0
+}
+
+shape_whitelist_entry() {
+	local section="$1"
+	local policy ipv4 ipv6 mac upload_bits download_bits
+	config_get policy "$section" policy
+	[ -n "$policy" ] && find_policy "$policy" || return 0
+	config_get ipv4 "$section" ipv4
+	config_get ipv6 "$section" ipv6
+	config_get mac "$section" mac
+	upload_bits="$(rate_to_bits "$POLICY_UPLOAD" "$POLICY_UPLOAD_UNIT")" || return 0
+	download_bits="$(rate_to_bits "$POLICY_DOWNLOAD" "$POLICY_DOWNLOAD_UNIT")" || return 0
+	TC_CLASS=$((TC_CLASS + 1))
+	[ "$TC_CLASS" -le 4095 ] || return 0
+	tc class replace dev "$DEVICE" parent 1: classid 1:"$TC_CLASS" htb rate "${download_bits}bit" ceil "${download_bits}bit" || TC_FAILED=1
+	tc class replace dev "$IFB_DEVICE" parent 2: classid 2:"$TC_CLASS" htb rate "${upload_bits}bit" ceil "${upload_bits}bit" || TC_FAILED=1
+	[ "$TC_FAILED" = 0 ] && add_tc_filters "$TC_CLASS" "$TC_CLASS" "$ipv4" "$ipv6" "$mac" || TC_FAILED=1
+}
+
+cleanup_tc() {
+	local device="$1"
+	if tc qdisc show dev "$device" 2>/dev/null | grep -q 'qdisc htb 1: root'; then
+		tc qdisc del dev "$device" root 2>/dev/null || true
+	fi
+	ip link set dev "$IFB_DEVICE" down 2>/dev/null || true
+	ip link del dev "$IFB_DEVICE" 2>/dev/null || true
+}
+
+setup_tc() {
+	local device="$1"
+	local root_qdisc
+	root_qdisc="$(tc qdisc show dev "$device" 2>/dev/null | sed -n '1p')"
+	if [ -n "$root_qdisc" ] && ! echo "$root_qdisc" | grep -q 'qdisc noqueue 0: root'; then
+		logger -t "$TABLE" "not applying bandwidth limits: $device already has a root qdisc"
+		return 0
+	fi
+	ip link add name "$IFB_DEVICE" type ifb 2>/dev/null || true
+	ip link set dev "$IFB_DEVICE" up || return 1
+	tc qdisc replace dev "$DEVICE" root handle 1: htb default 1 || { cleanup_tc "$device"; return 1; }
+	tc class replace dev "$DEVICE" parent 1: classid 1:1 htb rate 1000gbit ceil 1000gbit || { cleanup_tc "$device"; return 1; }
+	tc qdisc replace dev "$DEVICE" handle ffff: ingress || { cleanup_tc "$device"; return 1; }
+	tc filter replace dev "$DEVICE" parent ffff: protocol all prio 1 matchall action mirred egress redirect dev "$IFB_DEVICE" || { cleanup_tc "$device"; return 1; }
+	tc qdisc replace dev "$IFB_DEVICE" root handle 2: htb default 1 || { cleanup_tc "$device"; return 1; }
+	tc class replace dev "$IFB_DEVICE" parent 2: classid 2:1 htb rate 1000gbit ceil 1000gbit || { cleanup_tc "$device"; return 1; }
+	DEVICE="$device"
+	TC_CLASS=1
+	TC_FAILED=0
+	config_foreach shape_whitelist_entry whitelist
+	if [ "$TC_FAILED" != 0 ]; then
+		logger -t "$TABLE" "failed to apply bandwidth limits"
+		cleanup_tc "$device"
+		return 1
+	fi
+	return 0
+}
+
+stop_all() {
+	local device
+	config_load accesspolicycontroller
+	config_get network main network lan
+	device="$(resolve_device "$network")"
+	[ -n "$device" ] && cleanup_tc "$device"
+	nft delete table inet "$TABLE" 2>/dev/null || true
+}
+
+apply() {
+	local enabled mode network
+	config_load accesspolicycontroller
+	config_get enabled main enabled 0
+	config_get mode main mode whitelist
+	config_get network main network lan
+	if [ "$enabled" != 1 ]; then
+		stop_all
+		return 0
+	fi
+	DEVICE="$(resolve_device "$network")"
+	if [ -z "$DEVICE" ]; then
+		logger -t "$TABLE" "cannot resolve network device for $network"
+		return 1
+	fi
+	if [ "$mode" != whitelist ] && [ "$mode" != blacklist ]; then
+		logger -t "$TABLE" "invalid mode: $mode"
+		return 1
+	fi
+	if ! build_nft_rules "$DEVICE" "$mode" | nft -c -f -; then
+		logger -t "$TABLE" "invalid nftables rules"
+		return 1
+	fi
+	cleanup_tc "$DEVICE"
+	if ! replace_nft_rules "$DEVICE" "$mode" | nft -f -; then
+		logger -t "$TABLE" "failed to apply nftables rules"
+		return 1
+	fi
+	[ "$mode" = whitelist ] && setup_tc "$DEVICE"
+}
+
+case "$1" in
+	apply|reload|restart) apply ;;
+	stop) stop_all ;;
+	*) echo "Usage: $0 {apply|reload|restart|stop}" >&2; exit 2 ;;
+esac

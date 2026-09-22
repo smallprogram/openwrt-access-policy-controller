@@ -1,0 +1,11 @@
+{
+	"luci-app-accesspolicycontroller": {
+		"description": "Grant access to the access policy controller",
+		"read": {
+			"uci": [ "accesspolicycontroller" ]
+		},
+		"write": {
+			"uci": [ "accesspolicycontroller" ]
+		}
+	}
+}
