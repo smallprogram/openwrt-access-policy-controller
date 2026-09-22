@@ -1,0 +1,83 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: luci-app-accesspolicycontroller\n"
+"PO-Revision-Date: 2026-09-23 00:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Chinese (Simplified Han script)\n"
+"Language: zh_Hans\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+
+msgid "Use English letters and hyphens only."
+msgstr "仅可使用英文字母和连字符。"
+
+msgid "A rate limit policy with this name already exists."
+msgstr "已存在使用此名称的限速策略。"
+
+msgid "Enter a positive number."
+msgstr "请输入正数。"
+
+msgid "Name"
+msgstr "名称"
+
+msgid "MAC address"
+msgstr "MAC 地址"
+
+msgid "IPv4 address"
+msgstr "IPv4 地址"
+
+msgid "IPv6 address"
+msgstr "IPv6 地址"
+
+msgid "Rate limit policy"
+msgstr "限速策略"
+
+msgid "None"
+msgstr "无"
+
+msgid "Comment"
+msgstr "备注"
+
+msgid "unit"
+msgstr "单位"
+
+msgid "Access Policy Controller"
+msgstr "访问策略控制器"
+
+msgid "Control LAN access with whitelist or blacklist rules. Whitelisted devices can optionally receive bandwidth limits."
+msgstr "通过白名单或黑名单规则控制局域网访问。可为白名单设备设置带宽限制。"
+
+msgid "Overview"
+msgstr "概览"
+
+msgid "Enable"
+msgstr "启用"
+
+msgid "Mode"
+msgstr "模式"
+
+msgid "Whitelist mode"
+msgstr "白名单模式"
+
+msgid "Blacklist mode"
+msgstr "黑名单模式"
+
+msgid "LAN network"
+msgstr "局域网"
+
+msgid "Rate limit policies"
+msgstr "限速策略"
+
+msgid "Upload limit"
+msgstr "上传限速"
+
+msgid "Download limit"
+msgstr "下载限速"
+
+msgid "Whitelist"
+msgstr "白名单"
+
+msgid "Blacklist"
+msgstr "黑名单"

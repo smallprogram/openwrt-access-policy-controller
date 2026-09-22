@@ -1,0 +1,99 @@
+msgid ""
+msgstr "Content-Type: text/plain; charset=UTF-8"
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:9
+msgid "Use English letters and hyphens only."
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:24
+msgid "A rate limit policy with this name already exists."
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:29
+msgid "Enter a positive number."
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:35
+msgid "Name"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:42
+msgid "MAC address"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:59
+msgid "IPv4 address"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:63
+msgid "IPv6 address"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:69
+msgid "Rate limit policy"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:71
+msgid "None"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:80
+msgid "Comment"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:90
+msgid "unit"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:109
+#: luci-app-accesspolicycontroller/root/usr/share/luci/menu.d/luci-app-accesspolicycontroller.json:3
+msgid "Access Policy Controller"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:110
+msgid "Control LAN access with whitelist or blacklist rules. Whitelisted devices can optionally receive bandwidth limits."
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:113
+msgid "Overview"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:117
+msgid "Enable"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:121
+msgid "Mode"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:122
+msgid "Whitelist mode"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:123
+msgid "Blacklist mode"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:127
+msgid "LAN network"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:133
+msgid "Rate limit policies"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:138
+msgid "Upload limit"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:139
+msgid "Download limit"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:141
+msgid "Whitelist"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:151
+msgid "Blacklist"
+msgstr ""
