@@ -28,7 +28,7 @@ valid_mac() {
 }
 
 valid_rate() {
-	echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$' && [ "$(awk -v value="$1" 'BEGIN { print value > 0 }')" = 1 ]
+	echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$' && awk -v value="$1" 'BEGIN { exit !(value > 0) }'
 }
 
 valid_chain_priority() {
@@ -138,28 +138,18 @@ add_tc_filters() {
 	local matched=0
 	if valid_ipv4 "$ipv4"; then
 		matched=1
-		if valid_mac "$mac"; then
-			tc filter replace dev "$device" parent 1: protocol ip prio "$priority" flower dst_ip "$ipv4" dst_mac "$mac" flowid 1:"$class" || return 1
-			tc filter replace dev "$ifb_device" parent 2: protocol ip prio "$priority" flower src_ip "$ipv4" src_mac "$mac" flowid 2:"$class" || return 1
-		else
-			tc filter replace dev "$device" parent 1: protocol ip prio "$priority" flower dst_ip "$ipv4" flowid 1:"$class" || return 1
-			tc filter replace dev "$ifb_device" parent 2: protocol ip prio "$priority" flower src_ip "$ipv4" flowid 2:"$class" || return 1
-		fi
+		tc filter add dev "$device" parent 1:0 protocol ip prio "$priority" u32 match ip dst "$ipv4" flowid 1:"$class" || return 1
+		tc filter add dev "$ifb_device" parent 2:0 protocol ip prio "$priority" u32 match ip src "$ipv4" flowid 2:"$class" || return 1
 	fi
 	if valid_ipv6 "$ipv6"; then
 		matched=1
-		if valid_mac "$mac"; then
-			tc filter replace dev "$device" parent 1: protocol ipv6 prio "$priority" flower dst_ip "$ipv6" dst_mac "$mac" flowid 1:"$class" || return 1
-			tc filter replace dev "$ifb_device" parent 2: protocol ipv6 prio "$priority" flower src_ip "$ipv6" src_mac "$mac" flowid 2:"$class" || return 1
-		else
-			tc filter replace dev "$device" parent 1: protocol ipv6 prio "$priority" flower dst_ip "$ipv6" flowid 1:"$class" || return 1
-			tc filter replace dev "$ifb_device" parent 2: protocol ipv6 prio "$priority" flower src_ip "$ipv6" flowid 2:"$class" || return 1
-		fi
+		tc filter add dev "$device" parent 1:0 protocol ipv6 prio "$priority" u32 match ip6 dst "$ipv6" flowid 1:"$class" || return 1
+		tc filter add dev "$ifb_device" parent 2:0 protocol ipv6 prio "$priority" u32 match ip6 src "$ipv6" flowid 2:"$class" || return 1
 	fi
-	if [ -z "$ipv4$ipv6" ] && valid_mac "$mac"; then
+	if valid_mac "$mac"; then
 		matched=1
-		tc filter replace dev "$device" parent 1: protocol all prio "$priority" flower dst_mac "$mac" flowid 1:"$class" || return 1
-		tc filter replace dev "$ifb_device" parent 2: protocol all prio "$priority" flower src_mac "$mac" flowid 2:"$class" || return 1
+		tc filter add dev "$device" parent 1:0 protocol all prio "$priority" u32 match ether dst "$mac" flowid 1:"$class" || return 1
+		tc filter add dev "$ifb_device" parent 2:0 protocol all prio "$priority" u32 match ether src "$mac" flowid 2:"$class" || return 1
 	fi
 	[ "$matched" = 1 ]
 }
@@ -172,6 +162,10 @@ shape_whitelist_entry() {
 	config_get ipv4 "$section" ipv4
 	config_get ipv6 "$section" ipv6
 	config_get mac "$section" mac
+	if ! valid_ipv4 "$ipv4" && ! valid_ipv6 "$ipv6" && ! valid_mac "$mac"; then
+		logger -t "$TABLE" "skipping rate limit entry without a valid address: $section"
+		return 0
+	fi
 	upload_bits="$(rate_to_bits "$POLICY_UPLOAD" "$POLICY_UPLOAD_UNIT")" || return 0
 	download_bits="$(rate_to_bits "$POLICY_DOWNLOAD" "$POLICY_DOWNLOAD_UNIT")" || return 0
 	TC_CLASS=$((TC_CLASS + 1))
@@ -184,7 +178,11 @@ shape_whitelist_entry() {
 cleanup_tc() {
 	local device="$1"
 	local ifb_device="$2"
-	tc filter del dev "$device" parent ffff: protocol all prio "$INGRESS_FILTER_PRIORITY" 2>/dev/null || true
+	if tc qdisc show dev "$device" 2>/dev/null | grep -q 'qdisc clsact '; then
+		tc filter del dev "$device" ingress prio "$INGRESS_FILTER_PRIORITY" u32 2>/dev/null || true
+	else
+		tc filter del dev "$device" parent ffff: prio "$INGRESS_FILTER_PRIORITY" u32 2>/dev/null || true
+	fi
 	if tc qdisc show dev "$device" 2>/dev/null | grep -q 'qdisc htb 1: root'; then
 		tc qdisc del dev "$device" root 2>/dev/null || true
 	fi
@@ -195,7 +193,10 @@ cleanup_tc() {
 setup_tc() {
 	local device="$1"
 	local ifb_device="$2"
-	local root_qdisc
+	local root_qdisc ingress_filter
+	modprobe cls_u32 2>/dev/null || true
+	modprobe act_mirred 2>/dev/null || true
+	modprobe sch_ingress 2>/dev/null || true
 	root_qdisc="$(tc qdisc show dev "$device" 2>/dev/null | sed -n '1p')"
 	if [ -n "$root_qdisc" ] && ! echo "$root_qdisc" | grep -q 'qdisc noqueue 0: root'; then
 		logger -t "$TABLE" "replacing existing root qdisc on $device"
@@ -207,7 +208,13 @@ setup_tc() {
 	if ! tc qdisc show dev "$device" 2>/dev/null | grep -Eq 'qdisc (clsact|ingress) '; then
 		tc qdisc add dev "$device" clsact 2>/dev/null || tc qdisc add dev "$device" ingress || { cleanup_tc "$device" "$ifb_device"; return 1; }
 	fi
-	tc filter replace dev "$device" parent ffff: protocol all prio "$INGRESS_FILTER_PRIORITY" matchall action mirred egress redirect dev "$ifb_device" || { cleanup_tc "$device" "$ifb_device"; return 1; }
+	if tc qdisc show dev "$device" 2>/dev/null | grep -q 'qdisc clsact '; then
+		ingress_filter="ingress"
+	else
+		ingress_filter="parent ffff:"
+	fi
+	tc filter del dev "$device" $ingress_filter prio "$INGRESS_FILTER_PRIORITY" u32 2>/dev/null || true
+	tc filter add dev "$device" $ingress_filter prio "$INGRESS_FILTER_PRIORITY" u32 match u32 0 0 flowid 1:1 action mirred egress redirect dev "$ifb_device" || { cleanup_tc "$device" "$ifb_device"; return 1; }
 	tc qdisc replace dev "$ifb_device" root handle 2: htb default 1 || { cleanup_tc "$device" "$ifb_device"; return 1; }
 	tc class replace dev "$ifb_device" parent 2: classid 2:1 htb rate 1000gbit ceil 1000gbit || { cleanup_tc "$device" "$ifb_device"; return 1; }
 	CURRENT_DEVICE="$device"
