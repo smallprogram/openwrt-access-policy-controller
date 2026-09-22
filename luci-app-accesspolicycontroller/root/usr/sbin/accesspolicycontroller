@@ -3,6 +3,7 @@
 PATH=/usr/sbin:/usr/bin:/sbin:/bin
 TABLE=accesspolicycontroller
 STATE_FILE=/var/run/accesspolicycontroller.devices
+INGRESS_FILTER_PRIORITY=49152
 
 . /lib/functions.sh
 . /lib/functions/network.sh
@@ -183,6 +184,7 @@ shape_whitelist_entry() {
 cleanup_tc() {
 	local device="$1"
 	local ifb_device="$2"
+	tc filter del dev "$device" parent ffff: protocol all prio "$INGRESS_FILTER_PRIORITY" 2>/dev/null || true
 	if tc qdisc show dev "$device" 2>/dev/null | grep -q 'qdisc htb 1: root'; then
 		tc qdisc del dev "$device" root 2>/dev/null || true
 	fi
@@ -202,9 +204,10 @@ setup_tc() {
 	ip link set dev "$ifb_device" up || return 1
 	tc qdisc replace dev "$device" root handle 1: htb default 1 || { cleanup_tc "$device" "$ifb_device"; return 1; }
 	tc class replace dev "$device" parent 1: classid 1:1 htb rate 1000gbit ceil 1000gbit || { cleanup_tc "$device" "$ifb_device"; return 1; }
-	tc qdisc del dev "$device" ingress 2>/dev/null || true
-	tc qdisc add dev "$device" ingress || { cleanup_tc "$device" "$ifb_device"; return 1; }
-	tc filter replace dev "$device" parent ffff: protocol all prio 1 matchall action mirred egress redirect dev "$ifb_device" || { cleanup_tc "$device" "$ifb_device"; return 1; }
+	if ! tc qdisc show dev "$device" 2>/dev/null | grep -Eq 'qdisc (clsact|ingress) '; then
+		tc qdisc add dev "$device" clsact 2>/dev/null || tc qdisc add dev "$device" ingress || { cleanup_tc "$device" "$ifb_device"; return 1; }
+	fi
+	tc filter replace dev "$device" parent ffff: protocol all prio "$INGRESS_FILTER_PRIORITY" matchall action mirred egress redirect dev "$ifb_device" || { cleanup_tc "$device" "$ifb_device"; return 1; }
 	tc qdisc replace dev "$ifb_device" root handle 2: htb default 1 || { cleanup_tc "$device" "$ifb_device"; return 1; }
 	tc class replace dev "$ifb_device" parent 2: classid 2:1 htb rate 1000gbit ceil 1000gbit || { cleanup_tc "$device" "$ifb_device"; return 1; }
 	CURRENT_DEVICE="$device"
