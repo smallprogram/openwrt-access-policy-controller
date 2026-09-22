@@ -14,6 +14,13 @@ compile the package:
 make package/luci-app-accesspolicycontroller/compile V=s
 ```
 
+Or add to `feeds.conf.default`
+
+```
+src-git accesspolicycontroller https://github.com/smallprogram/openwrt-access-policy-controller.git;main
+```
+
+
 The package depends on firewall4's `nftables`, `tc-full`, `ip-full`, IFB, HTB,
 mirred, flower, and scheduler kernel modules. Its init script is enabled during
 package installation.
