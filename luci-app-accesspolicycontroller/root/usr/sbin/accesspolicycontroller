@@ -30,6 +30,10 @@ valid_rate() {
 	echo "$1" | grep -Eq '^[0-9]+(\.[0-9]+)?$' && [ "$(awk -v value="$1" 'BEGIN { print value > 0 }')" = 1 ]
 }
 
+valid_chain_priority() {
+	echo "$1" | grep -Eq '^-?[0-9]+$' && [ "$1" -ge -300 ] && [ "$1" -le 300 ]
+}
+
 rate_to_bits() {
 	local multiplier
 	case "$2" in
@@ -73,11 +77,13 @@ emit_acl_rule() {
 
 build_nft_rules() {
 	local mode="$1"
+	local chain_priority="$2"
 	local device
+	shift
 	shift
 	printf 'table inet %s {\n' "$TABLE"
 	printf '\tchain forward {\n'
-	printf '\t\ttype filter hook forward priority filter - 10; policy accept;\n'
+	printf '\t\ttype filter hook forward priority %s; policy accept;\n' "$chain_priority"
 	for device in "$@"; do
 		printf '\t\tiifname "%s" jump lan_policy\n' "$device"
 	done
@@ -132,27 +138,27 @@ add_tc_filters() {
 	if valid_ipv4 "$ipv4"; then
 		matched=1
 		if valid_mac "$mac"; then
-			tc filter replace dev "$device" parent 1: protocol ip prio "$priority" flower dst_ip "$ipv4" dst_mac "$mac" flowid 1:"$class" || return 1
-			tc filter replace dev "$ifb_device" parent 2: protocol ip prio "$priority" flower src_ip "$ipv4" src_mac "$mac" flowid 2:"$class" || return 1
+			tc filter replace dev "$device" parent 1: protocol ip prio "$priority" flower skip_hw dst_ip "$ipv4" dst_mac "$mac" flowid 1:"$class" || return 1
+			tc filter replace dev "$ifb_device" parent 2: protocol ip prio "$priority" flower skip_hw src_ip "$ipv4" src_mac "$mac" flowid 2:"$class" || return 1
 		else
-			tc filter replace dev "$device" parent 1: protocol ip prio "$priority" flower dst_ip "$ipv4" flowid 1:"$class" || return 1
-			tc filter replace dev "$ifb_device" parent 2: protocol ip prio "$priority" flower src_ip "$ipv4" flowid 2:"$class" || return 1
+			tc filter replace dev "$device" parent 1: protocol ip prio "$priority" flower skip_hw dst_ip "$ipv4" flowid 1:"$class" || return 1
+			tc filter replace dev "$ifb_device" parent 2: protocol ip prio "$priority" flower skip_hw src_ip "$ipv4" flowid 2:"$class" || return 1
 		fi
 	fi
 	if valid_ipv6 "$ipv6"; then
 		matched=1
 		if valid_mac "$mac"; then
-			tc filter replace dev "$device" parent 1: protocol ipv6 prio "$priority" flower dst_ip "$ipv6" dst_mac "$mac" flowid 1:"$class" || return 1
-			tc filter replace dev "$ifb_device" parent 2: protocol ipv6 prio "$priority" flower src_ip "$ipv6" src_mac "$mac" flowid 2:"$class" || return 1
+			tc filter replace dev "$device" parent 1: protocol ipv6 prio "$priority" flower skip_hw dst_ip "$ipv6" dst_mac "$mac" flowid 1:"$class" || return 1
+			tc filter replace dev "$ifb_device" parent 2: protocol ipv6 prio "$priority" flower skip_hw src_ip "$ipv6" src_mac "$mac" flowid 2:"$class" || return 1
 		else
-			tc filter replace dev "$device" parent 1: protocol ipv6 prio "$priority" flower dst_ip "$ipv6" flowid 1:"$class" || return 1
-			tc filter replace dev "$ifb_device" parent 2: protocol ipv6 prio "$priority" flower src_ip "$ipv6" flowid 2:"$class" || return 1
+			tc filter replace dev "$device" parent 1: protocol ipv6 prio "$priority" flower skip_hw dst_ip "$ipv6" flowid 1:"$class" || return 1
+			tc filter replace dev "$ifb_device" parent 2: protocol ipv6 prio "$priority" flower skip_hw src_ip "$ipv6" flowid 2:"$class" || return 1
 		fi
 	fi
 	if [ -z "$ipv4$ipv6" ] && valid_mac "$mac"; then
 		matched=1
-		tc filter replace dev "$device" parent 1: protocol all prio "$priority" flower dst_mac "$mac" flowid 1:"$class" || return 1
-		tc filter replace dev "$ifb_device" parent 2: protocol all prio "$priority" flower src_mac "$mac" flowid 2:"$class" || return 1
+		tc filter replace dev "$device" parent 1: protocol all prio "$priority" flower skip_hw dst_mac "$mac" flowid 1:"$class" || return 1
+		tc filter replace dev "$ifb_device" parent 2: protocol all prio "$priority" flower skip_hw src_mac "$mac" flowid 2:"$class" || return 1
 	fi
 	[ "$matched" = 1 ]
 }
@@ -169,8 +175,10 @@ shape_whitelist_entry() {
 	download_bits="$(rate_to_bits "$POLICY_DOWNLOAD" "$POLICY_DOWNLOAD_UNIT")" || return 0
 	TC_CLASS=$((TC_CLASS + 1))
 	[ "$TC_CLASS" -le 4095 ] || return 0
-	tc class replace dev "$CURRENT_DEVICE" parent 1: classid 1:"$TC_CLASS" htb rate "${download_bits}bit" ceil "${download_bits}bit" || TC_FAILED=1
-	tc class replace dev "$CURRENT_IFB_DEVICE" parent 2: classid 2:"$TC_CLASS" htb rate "${upload_bits}bit" ceil "${upload_bits}bit" || TC_FAILED=1
+	tc class replace dev "$CURRENT_DEVICE" parent 1:1 classid 1:"$TC_CLASS" htb rate "${download_bits}bit" ceil "${download_bits}bit" || TC_FAILED=1
+	tc qdisc replace dev "$CURRENT_DEVICE" parent 1:"$TC_CLASS" handle "${TC_CLASS}:" pfifo limit 1000 || TC_FAILED=1
+	tc class replace dev "$CURRENT_IFB_DEVICE" parent 2:1 classid 2:"$TC_CLASS" htb rate "${upload_bits}bit" ceil "${upload_bits}bit" || TC_FAILED=1
+	tc qdisc replace dev "$CURRENT_IFB_DEVICE" parent 2:"$TC_CLASS" handle "${TC_CLASS}:" pfifo limit 1000 || TC_FAILED=1
 	[ "$TC_FAILED" = 0 ] && add_tc_filters "$CURRENT_DEVICE" "$CURRENT_IFB_DEVICE" "$TC_CLASS" "$TC_CLASS" "$ipv4" "$ipv6" "$mac" || TC_FAILED=1
 }
 
@@ -228,9 +236,10 @@ stop_all() {
 }
 
 apply() {
-	local enabled mode networks network device devices ifb_device index
+	local enabled mode chain_priority networks network device devices ifb_device index
 	config_load accesspolicycontroller
 	config_get enabled main enabled 0
+	config_get chain_priority main chain_priority -300
 	config_get mode main mode whitelist
 	config_get networks main network lan
 	if [ "$enabled" != 1 ]; then
@@ -239,6 +248,10 @@ apply() {
 	fi
 	if [ "$mode" != whitelist ] && [ "$mode" != blacklist ] && [ "$mode" != hybrid ]; then
 		logger -t "$TABLE" "invalid mode: $mode"
+		return 1
+	fi
+	if ! valid_chain_priority "$chain_priority"; then
+		logger -t "$TABLE" "invalid chain priority: $chain_priority"
 		return 1
 	fi
 	devices=
@@ -257,12 +270,12 @@ apply() {
 		logger -t "$TABLE" "no application interfaces configured"
 		return 1
 	fi
-	if ! build_nft_rules "$mode" $devices | nft -c -f -; then
+	if ! build_nft_rules "$mode" "$chain_priority" $devices | nft -c -f -; then
 		logger -t "$TABLE" "invalid nftables rules"
 		return 1
 	fi
 	cleanup_saved_tc
-	if ! replace_nft_rules "$mode" $devices | nft -f -; then
+	if ! replace_nft_rules "$mode" "$chain_priority" $devices | nft -f -; then
 		logger -t "$TABLE" "failed to apply nftables rules"
 		return 1
 	fi

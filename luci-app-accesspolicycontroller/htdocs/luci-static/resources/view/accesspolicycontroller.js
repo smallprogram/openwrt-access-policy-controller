@@ -107,7 +107,7 @@ return view.extend({
 		let option;
 
 		map = new form.Map('accesspolicycontroller', _('Access Policy Controller'),
-			_('Control access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits.'));
+			_('Control internet access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits.'));
 		map.tabbed = true;
 
 		section = map.section(form.NamedSection, 'main', 'accesspolicycontroller', _('Overview'));
@@ -124,6 +124,15 @@ return view.extend({
 		option.value('blacklist', _('Blacklist mode'));
 		option.value('hybrid', _('Hybrid mode'));
 		option.default = 'whitelist';
+		option.rmempty = false;
+
+		option = section.option(form.ListValue, 'chain_priority', _('Chain priority'));
+		option.description = _('Controls when this access policy chain runs relative to other firewall chains. Lower values run first.');
+		option.value('-300', _('Highest priority'));
+		option.value('-150', _('High priority'));
+		option.value('0', _('Normal priority'));
+		option.value('50', _('Low priority'));
+		option.default = '-300';
 		option.rmempty = false;
 
 		option = section.option(widgets.NetworkSelect, 'network', _('Application interfaces'));

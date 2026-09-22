@@ -51,7 +51,7 @@ msgid "Access Policy Controller"
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:110
-msgid "Control access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits."
+msgid "Control internet access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits."
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:113
@@ -64,6 +64,30 @@ msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:121
 msgid "Mode"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:130
+msgid "Chain priority"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:131
+msgid "Controls when this access policy chain runs relative to other firewall chains. Lower values run first."
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:132
+msgid "Highest priority"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:133
+msgid "High priority"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:134
+msgid "Normal priority"
+msgstr ""
+
+#: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:135
+msgid "Low priority"
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:122

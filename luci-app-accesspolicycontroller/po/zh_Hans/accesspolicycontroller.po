@@ -46,8 +46,8 @@ msgstr "单位"
 msgid "Access Policy Controller"
 msgstr "访问策略控制器"
 
-msgid "Control access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits."
-msgstr "通过白名单、黑名单或混合规则控制所选内部接口的访问。可为白名单设备设置带宽限制。"
+msgid "Control internet access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits."
+msgstr "通过白名单、黑名单或混合规则控制所选内部接口的互联网访问。可为白名单设备设置带宽限制。"
 
 msgid "Overview"
 msgstr "概览"
@@ -57,6 +57,24 @@ msgstr "启用"
 
 msgid "Mode"
 msgstr "模式"
+
+msgid "Chain priority"
+msgstr "链优先级"
+
+msgid "Controls when this access policy chain runs relative to other firewall chains. Lower values run first."
+msgstr "控制此访问策略链相对于其他防火墙链的执行顺序。数值越小，优先级越高。"
+
+msgid "Highest priority"
+msgstr "最高优先级"
+
+msgid "High priority"
+msgstr "高优先级"
+
+msgid "Normal priority"
+msgstr "普通优先级"
+
+msgid "Low priority"
+msgstr "低优先级"
 
 msgid "Whitelist mode"
 msgstr "白名单模式"
