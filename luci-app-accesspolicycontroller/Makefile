@@ -6,7 +6,7 @@ PKG_RELEASE:=1
 PKG_MAINTAINER:=smallprogram <smallprogramzhusir@gmail.com>
 
 LUCI_TITLE:=LuCI access policy controller
-LUCI_DEPENDS:=+luci-base +nftables +tc-full +ip-full +kmod-ifb +kmod-sched-core +kmod-sched-htb +kmod-sched-act-mirred +kmod-sched-flower
+LUCI_DEPENDS:=+luci-base +nftables +tc-full +ip-full +kmod-ifb +kmod-sched-core +kmod-sched-flower
 LUCI_PKGARCH:=all
 
 define Package/$(PKG_NAME)/conffiles
