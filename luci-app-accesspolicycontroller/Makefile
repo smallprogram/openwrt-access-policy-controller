@@ -1,8 +1,14 @@
+# openwrt access policy controller
+# Copyright (c) 2026 smallprogram (smallprogramzhusir@gmail.com)
+# This is free software, licensed under the GNU General Public License v3.
+#
+
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=luci-app-accesspolicycontroller
 PKG_VERSION:=1.0.0
 PKG_RELEASE:=1
+PKG_LICENSE:=GPL-3.0-or-later
 PKG_MAINTAINER:=smallprogram <smallprogramzhusir@gmail.com>
 
 LUCI_TITLE:=LuCI access policy controller
