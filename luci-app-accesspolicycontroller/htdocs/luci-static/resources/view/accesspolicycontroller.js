@@ -147,6 +147,7 @@ return view.extend({
 		section.addremove = true;
 		section.nodescriptions = true;
 		section.filterrow = true;
+		section.sortable = true;
 		addNameOption(section, validatePolicyName);
 		addCommentOption(section);
 		addRateOption(section, 'upload', _('Upload limit'));
@@ -157,6 +158,7 @@ return view.extend({
 		section.addremove = true;
 		section.nodescriptions = true;
 		section.filterrow = true;
+		section.sortable = true;
 		addCommentOption(section);
 		addNameOption(section);
 		addAddressOptions(section);
@@ -168,6 +170,7 @@ return view.extend({
 		section.addremove = true;
 		section.nodescriptions = true;
 		section.filterrow = true;
+		section.sortable = true;
 		addCommentOption(section);
 		addNameOption(section);
 		addAddressOptions(section);
