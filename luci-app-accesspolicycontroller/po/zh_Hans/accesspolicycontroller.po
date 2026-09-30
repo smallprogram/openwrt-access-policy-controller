@@ -46,8 +46,8 @@ msgstr "单位"
 msgid "Access Policy Controller"
 msgstr "访问策略控制器"
 
-msgid "Control internet access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits."
-msgstr "通过白名单、黑名单或混合规则控制所选内部接口的互联网访问。可为白名单设备设置带宽限制。"
+msgid "Control internet access on selected internal interfaces with whitelist or blacklist rules. Whitelisted devices can optionally receive bandwidth limits."
+msgstr "通过白名单或黑名单规则控制所选内部接口的互联网访问。可为白名单设备设置带宽限制。"
 
 msgid "Overview"
 msgstr "概览"
@@ -82,6 +82,12 @@ msgstr "白名单模式"
 msgid "Blacklist mode"
 msgstr "黑名单模式"
 
+msgid "Block router local access"
+msgstr "拦截路由器本地通信"
+
+msgid "When enabled, whitelist mode permits only whitelisted devices to access the router, while blacklist mode also blocks blacklisted devices from accessing it."
+msgstr "启用后，白名单模式仅允许白名单设备访问路由器；黑名单模式会同时禁止黑名单设备访问路由器。"
+
 msgid "Application interfaces"
 msgstr "应用接口"
 
@@ -103,8 +109,5 @@ msgstr "白名单"
 msgid "Blacklist"
 msgstr "黑名单"
 
-msgid "Hybrid mode"
-msgstr "混合模式"
-
-msgid "Whitelist mode blocks devices not on the whitelist. Blacklist mode blocks only devices on the blacklist. Hybrid mode blocks blacklisted devices, applies rate limits to whitelisted devices, and allows all other devices without rate limits."
-msgstr "白名单模式会阻止不在白名单中的设备。黑名单模式只阻止黑名单中的设备。混合模式会阻止黑名单设备，对白名单设备应用限速策略，其他设备则放行且不限速。"
+msgid "Whitelist mode blocks devices not on the whitelist. Blacklist mode blocks only devices on the blacklist."
+msgstr "白名单模式会阻止不在白名单中的设备。黑名单模式只阻止黑名单中的设备。"

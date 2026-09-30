@@ -35,6 +35,10 @@ valid_chain_priority() {
 	echo "$1" | grep -Eq '^-?[0-9]+$' && [ "$1" -ge -300 ] && [ "$1" -le 300 ]
 }
 
+valid_flag() {
+	[ "$1" = 0 ] || [ "$1" = 1 ]
+}
+
 rate_to_bits() {
 	local multiplier
 	case "$2" in
@@ -76,10 +80,22 @@ emit_acl_rule() {
 	fi
 }
 
+emit_policy_rules() {
+	local mode="$1"
+	if [ "$mode" = whitelist ]; then
+		config_foreach emit_acl_rule whitelist "$mode"
+		printf '\t\tcounter drop\n'
+	else
+		config_foreach emit_acl_rule blacklist blacklist
+	fi
+}
+
 build_nft_rules() {
 	local mode="$1"
 	local chain_priority="$2"
+	local block_router_access="$3"
 	local device
+	shift
 	shift
 	shift
 	printf 'table inet %s {\n' "$TABLE"
@@ -89,16 +105,19 @@ build_nft_rules() {
 		printf '\t\tiifname "%s" jump lan_policy\n' "$device"
 	done
 	printf '\t}\n\tchain lan_policy {\n'
-	if [ "$mode" = whitelist ]; then
-		config_foreach emit_acl_rule whitelist "$mode"
-		printf '\t\tcounter drop\n'
-	elif [ "$mode" = hybrid ]; then
-		config_foreach emit_acl_rule blacklist blacklist
-		config_foreach emit_acl_rule whitelist whitelist
-	else
-		config_foreach emit_acl_rule blacklist blacklist
+	emit_policy_rules "$mode"
+	printf '\t}\n'
+	if [ "$block_router_access" = 1 ]; then
+		printf '\tchain input {\n'
+		printf '\t\ttype filter hook input priority %s; policy accept;\n' "$chain_priority"
+		for device in "$@"; do
+			printf '\t\tiifname "%s" jump lan_local_policy\n' "$device"
+		done
+		printf '\t}\n\tchain lan_local_policy {\n'
+		emit_policy_rules "$mode"
+		printf '\t}\n'
 	fi
-	printf '\t}\n}\n'
+	printf '}\n'
 }
 
 replace_nft_rules() {
@@ -268,18 +287,23 @@ stop_all() {
 }
 
 apply() {
-	local enabled mode chain_priority networks network device devices ifb_device index
+	local enabled mode chain_priority block_router_access networks network device devices ifb_device index
 	config_load accesspolicycontroller
 	config_get enabled main enabled 0
 	config_get chain_priority main chain_priority -300
 	config_get mode main mode whitelist
+	config_get block_router_access main block_router_access 0
 	config_get networks main network lan
 	if [ "$enabled" != 1 ]; then
 		stop_all
 		return 0
 	fi
-	if [ "$mode" != whitelist ] && [ "$mode" != blacklist ] && [ "$mode" != hybrid ]; then
+	if [ "$mode" != whitelist ] && [ "$mode" != blacklist ]; then
 		logger -t "$TABLE" "invalid mode: $mode"
+		return 1
+	fi
+	if ! valid_flag "$block_router_access"; then
+		logger -t "$TABLE" "invalid block router access setting: $block_router_access"
 		return 1
 	fi
 	if ! valid_chain_priority "$chain_priority"; then
@@ -303,11 +327,11 @@ apply() {
 		return 1
 	fi
 	cleanup_saved_tc
-	if ! replace_nft_rules "$mode" "$chain_priority" $devices | nft -f -; then
+	if ! replace_nft_rules "$mode" "$chain_priority" "$block_router_access" $devices | nft -f -; then
 		logger -t "$TABLE" "failed to apply nftables rules"
 		return 1
 	fi
-	if [ "$mode" = whitelist ] || [ "$mode" = hybrid ]; then
+	if [ "$mode" = whitelist ]; then
 		: > "$STATE_FILE"
 		index=0
 		for device in $devices; do

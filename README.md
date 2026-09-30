@@ -30,7 +30,9 @@ package installation.
 Open **Services -> Access Policy Controller** in LuCI.
 
 - **Overview** selects the LAN logical network, enables the controller, and
-	selects whitelist or blacklist mode.
+	selects whitelist or blacklist mode. It can also block router local access:
+	in whitelist mode, only whitelisted devices can access the router; in
+	blacklist mode, blacklisted devices cannot access the router.
 - **Rate limit policies** define decimal upload and download limits with B/s,
 	KB/s, MB/s, or GB/s units.
 - **Whitelist** permits matching devices in whitelist mode and optionally
