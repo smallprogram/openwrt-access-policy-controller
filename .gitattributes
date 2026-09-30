@@ -1,0 +1,2 @@
+luci-app-accesspolicycontroller/root/etc/init.d/* text eol=lf
+luci-app-accesspolicycontroller/root/usr/sbin/* text eol=lf

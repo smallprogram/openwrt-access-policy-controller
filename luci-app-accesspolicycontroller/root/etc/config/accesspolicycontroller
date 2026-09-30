@@ -1,5 +1,6 @@
 config accesspolicycontroller 'main'
 	option enabled '0'
 	option mode 'whitelist'
+	option block_router_access '0'
 	option chain_priority '-300'
 	list network 'lan'

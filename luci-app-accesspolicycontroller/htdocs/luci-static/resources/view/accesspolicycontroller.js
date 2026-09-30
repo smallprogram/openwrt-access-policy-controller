@@ -107,7 +107,7 @@ return view.extend({
 		let option;
 
 		map = new form.Map('accesspolicycontroller', _('Access Policy Controller'),
-			_('Control internet access on selected internal interfaces with whitelist, blacklist, or hybrid rules. Whitelisted devices can optionally receive bandwidth limits.'));
+			_('Control internet access on selected internal interfaces with whitelist or blacklist rules. Whitelisted devices can optionally receive bandwidth limits.'));
 		map.tabbed = true;
 
 		section = map.section(form.NamedSection, 'main', 'accesspolicycontroller', _('Overview'));
@@ -119,11 +119,15 @@ return view.extend({
 		option.default = '0';
 
 		option = section.option(form.ListValue, 'mode', _('Mode'));
-		option.description = _('Whitelist mode blocks devices not on the whitelist. Blacklist mode blocks only devices on the blacklist. Hybrid mode blocks blacklisted devices, applies rate limits to whitelisted devices, and allows all other devices without rate limits.');
+		option.description = _('Whitelist mode blocks devices not on the whitelist. Blacklist mode blocks only devices on the blacklist.');
 		option.value('whitelist', _('Whitelist mode'));
 		option.value('blacklist', _('Blacklist mode'));
-		option.value('hybrid', _('Hybrid mode'));
 		option.default = 'whitelist';
+		option.rmempty = false;
+
+		option = section.option(form.Flag, 'block_router_access', _('Block router local access'));
+		option.description = _('When enabled, whitelist mode permits only whitelisted devices to access the router when at least one valid whitelist entry exists; otherwise router access remains available to prevent lockout. Blacklist mode also blocks blacklisted devices from accessing it.');
+		option.default = '0';
 		option.rmempty = false;
 
 		option = section.option(form.ListValue, 'chain_priority', _('Chain priority'));
