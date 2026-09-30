@@ -71,7 +71,7 @@ msgid "Block router local access"
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:127
-msgid "When enabled, whitelist mode permits only whitelisted devices to access the router, while blacklist mode also blocks blacklisted devices from accessing it."
+msgid "When enabled, whitelist mode permits only whitelisted devices to access the router when at least one valid whitelist entry exists; otherwise router access remains available to prevent lockout. Blacklist mode also blocks blacklisted devices from accessing it."
 msgstr ""
 
 #: luci-app-accesspolicycontroller/htdocs/luci-static/resources/view/accesspolicycontroller.js:130

@@ -80,6 +80,23 @@ emit_acl_rule() {
 	fi
 }
 
+find_valid_acl_entry() {
+	local section="$1"
+	local ipv4 ipv6 mac
+	config_get ipv4 "$section" ipv4
+	config_get ipv6 "$section" ipv6
+	config_get mac "$section" mac
+	if valid_ipv4 "$ipv4" || valid_ipv6 "$ipv6" || { [ -z "$ipv4$ipv6" ] && valid_mac "$mac"; }; then
+		HAS_VALID_ACL_ENTRY=1
+	fi
+}
+
+has_valid_acl_entry() {
+	HAS_VALID_ACL_ENTRY=0
+	config_foreach find_valid_acl_entry "$1"
+	[ "$HAS_VALID_ACL_ENTRY" = 1 ]
+}
+
 emit_policy_rules() {
 	local mode="$1"
 	if [ "$mode" = whitelist ]; then
@@ -325,6 +342,10 @@ apply() {
 	if [ -z "$devices" ]; then
 		logger -t "$TABLE" "no application interfaces configured"
 		return 1
+	fi
+	if [ "$mode" = whitelist ] && [ "$block_router_access" = 1 ] && ! has_valid_acl_entry whitelist; then
+		logger -t "$TABLE" "not blocking router access because the whitelist has no valid entries"
+		block_router_access=0
 	fi
 	cleanup_saved_tc
 	if ! replace_nft_rules "$mode" "$chain_priority" "$block_router_access" $devices | nft -f -; then

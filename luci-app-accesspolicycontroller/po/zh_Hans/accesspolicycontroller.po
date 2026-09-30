@@ -85,8 +85,8 @@ msgstr "黑名单模式"
 msgid "Block router local access"
 msgstr "拦截路由器本地通信"
 
-msgid "When enabled, whitelist mode permits only whitelisted devices to access the router, while blacklist mode also blocks blacklisted devices from accessing it."
-msgstr "启用后，白名单模式仅允许白名单设备访问路由器；黑名单模式会同时禁止黑名单设备访问路由器。"
+msgid "When enabled, whitelist mode permits only whitelisted devices to access the router when at least one valid whitelist entry exists; otherwise router access remains available to prevent lockout. Blacklist mode also blocks blacklisted devices from accessing it."
+msgstr "启用后，白名单模式仅会在至少存在一个有效白名单条目时，仅允许白名单设备访问路由器；否则为防止锁死管理访问，将保持路由器可访问。黑名单模式会同时禁止黑名单设备访问路由器。"
 
 msgid "Application interfaces"
 msgstr "应用接口"

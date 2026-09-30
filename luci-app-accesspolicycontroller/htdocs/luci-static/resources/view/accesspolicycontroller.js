@@ -126,7 +126,7 @@ return view.extend({
 		option.rmempty = false;
 
 		option = section.option(form.Flag, 'block_router_access', _('Block router local access'));
-		option.description = _('When enabled, whitelist mode permits only whitelisted devices to access the router, while blacklist mode also blocks blacklisted devices from accessing it.');
+		option.description = _('When enabled, whitelist mode permits only whitelisted devices to access the router when at least one valid whitelist entry exists; otherwise router access remains available to prevent lockout. Blacklist mode also blocks blacklisted devices from accessing it.');
 		option.default = '0';
 		option.rmempty = false;
 
